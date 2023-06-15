@@ -4,77 +4,44 @@ using UnityEngine;
 
 public class CarController : MonoBehaviour
 {
-    public float motorForce = 1000f;       // Сила двигателя машинки
-    public float brakeForce = 2000f;       // Сила тормоза машинки
+    public float motorForce = 1000f;      
+
+    public Transform[] wheels;            
 
     private Rigidbody carRigidbody;
-    private HingeJoint[] wheelJoints;
-    private JointMotor[] wheelMotors;
 
-    private bool isMotorOn = false;        // Флаг, указывающий, включен ли двигатель машинки
-    private float steeringAngle = 0f;      // Угол поворота машинки
-    private float maxSteeringAngle = 30f;  // Максимальный угол поворота машинки
+    private bool isMotorOn = false;        
+    private float steeringAngle = 0f;      
+    private float maxSteeringAngle = 30f;  
 
     private void Start()
     {
         carRigidbody = GetComponent<Rigidbody>();
-
-        // Получаем все HingeJoint компоненты на колесах
-        WheelCollider[] wheelColliders = GetComponentsInChildren<WheelCollider>();
-        wheelJoints = new HingeJoint[wheelColliders.Length];
-        wheelMotors = new JointMotor[wheelColliders.Length];
-
-        for (int i = 0; i < wheelColliders.Length; i++)
-        {
-            wheelJoints[i] = wheelColliders[i].GetComponent<HingeJoint>();
-            wheelMotors[i] = wheelJoints[i].motor;
-        }
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
-        // Обработка ввода для управления машинкой
+ 
         float motorInput = Input.GetAxis("Vertical");
         float steeringInput = Input.GetAxis("Horizontal");
-        bool brakeInput = Input.GetKey(KeyCode.Space);
 
-        // Включение/выключение двигателя машинки
         if (Input.GetKeyDown(KeyCode.M))
         {
             isMotorOn = !isMotorOn;
         }
 
-        // Установка угла поворота машинки
         steeringAngle = steeringInput * maxSteeringAngle;
 
-        // Применение силы двигателя и тормоза к колесам машинки
-        for (int i = 0; i < wheelJoints.Length; i++)
+        for (int i = 0; i < wheels.Length; i++)
         {
-            JointMotor motor = wheelMotors[i];
+
+            wheels[i].localRotation = Quaternion.Euler(0f, steeringAngle, 0f);
 
             if (isMotorOn)
             {
-                motor.force = motorForce;
-                motor.targetVelocity = -motorInput * motorForce;
-            }
-            else
-            {
-                motor.force = 0f;
-                motor.targetVelocity = 0f;
+                wheels[i].Translate(Vector3.forward * -motorInput * motorForce * Time.deltaTime);
             }
 
-            wheelMotors[i] = motor;
-
-            wheelJoints[i].motor = wheelMotors[i];
-
-            // Установка угла поворота колес
-            JointSpring jointSpring = wheelJoints[i].spring;
-            jointSpring.targetPosition = steeringAngle;
-            wheelJoints[i].spring = jointSpring;
-
-            // Применение тормоза
-            WheelCollider wheelCollider = wheelJoints[i].GetComponent<WheelCollider>();
-            wheelCollider.brakeTorque = brakeInput ? brakeForce : 0f;
         }
     }
 }
